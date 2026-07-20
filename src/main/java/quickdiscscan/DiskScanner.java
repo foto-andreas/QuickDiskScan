@@ -2,6 +2,7 @@ package quickdiscscan;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.DirectoryIteratorException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.ConcurrentHashMap;
@@ -194,6 +196,7 @@ final class DiskScanner {
     private final AtomicLong physicalBytes = new AtomicLong();
     private final AtomicLong offlineFiles = new AtomicLong();
     private final Collection<FileIdentity> countedHardLinks = ConcurrentHashMap.newKeySet();
+    private final Collection<DirectoryStream<Path>> openDirectories = ConcurrentHashMap.newKeySet();
     private volatile long startedNanos;
     private volatile boolean running;
     private volatile Path currentPath;
@@ -219,7 +222,24 @@ final class DiskScanner {
             entries.incrementAndGet();
 
             pool = new ForkJoinPool(config.parallelism());
-            pool.invoke(new DirectoryTask(root, config.root(), rootMetadata.device()));
+            try {
+                pool.submit(new DirectoryTask(root, config.root(), rootMetadata.device())).get();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException();
+            } catch (ExecutionException exception) {
+                if (cancelled.get()) {
+                    throw new CancellationException();
+                }
+                Throwable cause = exception.getCause();
+                if (cause instanceof RuntimeException runtime) {
+                    throw runtime;
+                }
+                if (cause instanceof Error error) {
+                    throw error;
+                }
+                throw new IOException("Scan fehlgeschlagen", cause);
+            }
             checkCancelled();
             return new Result(root, snapshot(false));
         } finally {
@@ -232,6 +252,15 @@ final class DiskScanner {
 
     void cancel() {
         cancelled.set(true);
+        ForkJoinPool activePool = pool;
+        if (activePool != null) {
+            activePool.shutdownNow();
+        }
+        List<DirectoryStream<Path>> streams = List.copyOf(openDirectories);
+        if (!streams.isEmpty()) {
+            Thread.ofVirtual().name("scan-directory-close").start(
+                    () -> streams.forEach(DiskScanner::close));
+        }
     }
 
     ScanNode root() {
@@ -291,6 +320,14 @@ final class DiskScanner {
         return fileName == null ? path.toString() : fileName.toString();
     }
 
+    private static void close(DirectoryStream<Path> stream) {
+        try {
+            stream.close();
+        } catch (IOException ignored) {
+            // Best effort: some providers can still be blocked in native code.
+        }
+    }
+
     @SuppressWarnings("serial")
     private final class DirectoryTask extends RecursiveAction {
         private final ScanNode node;
@@ -310,7 +347,10 @@ final class DiskScanner {
             ArrayList<DirectoryTask> directoryTasks = new ArrayList<>();
             long seen = entries.get();
 
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+            DirectoryStream<Path> stream = null;
+            try {
+                stream = Files.newDirectoryStream(path);
+                openDirectories.add(stream);
                 for (Path childPath : stream) {
                     checkCancelled();
                     try {
@@ -349,11 +389,27 @@ final class DiskScanner {
                         errors.incrementAndGet();
                     }
                 }
+            } catch (DirectoryIteratorException exception) {
+                if (cancelled.get()) {
+                    throw new CancellationException();
+                }
+                errors.incrementAndGet();
             } catch (IOException | SecurityException ignored) {
                 errors.incrementAndGet();
+            } catch (RuntimeException exception) {
+                if (cancelled.get()) {
+                    throw new CancellationException();
+                }
+                throw exception;
+            } finally {
+                if (stream != null) {
+                    openDirectories.remove(stream);
+                    close(stream);
+                }
             }
 
             node.children = List.copyOf(children);
+            checkCancelled();
             invokeAll(directoryTasks);
             checkCancelled();
             node.recalculate();

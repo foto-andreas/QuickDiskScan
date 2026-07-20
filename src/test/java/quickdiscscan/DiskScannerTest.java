@@ -11,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class DiskScannerTest {
     public static void main(String[] args) throws Exception {
@@ -79,11 +80,43 @@ public final class DiskScannerTest {
             } catch (CancellationException expected) {
                 // expected
             }
+            testActiveCancellation(root);
             System.out.println("DiskScannerTest: OK (native metrics: "
                     + NativeDiskMetrics.nativeAvailable() + ")");
         } finally {
             deleteTree(root);
         }
+    }
+
+    private static void testActiveCancellation(Path parent) throws Exception {
+        Path cancelRoot = Files.createDirectory(parent.resolve("cancel-tree"));
+        for (int directory = 0; directory < 64; directory++) {
+            Path child = Files.createDirectory(cancelRoot.resolve("d" + directory));
+            for (int file = 0; file < 256; file++) {
+                Files.createFile(child.resolve("f" + file));
+            }
+        }
+
+        DiskScanner scanner = new DiskScanner(new DiskScanner.Config(cancelRoot, 4));
+        AtomicReference<Throwable> outcome = new AtomicReference<>();
+        Thread thread = Thread.ofPlatform().daemon(true).name("active-cancel-test").start(() -> {
+            try {
+                scanner.scan();
+            } catch (Throwable exception) {
+                outcome.set(exception);
+            }
+        });
+
+        long deadline = System.nanoTime() + 5_000_000_000L;
+        while (thread.isAlive() && scanner.snapshot().entries() < 200 && System.nanoTime() < deadline) {
+            Thread.onSpinWait();
+        }
+        assert thread.isAlive() : "Testscan endete vor dem aktiven Abbruch";
+        scanner.cancel();
+        thread.interrupt();
+        thread.join(2_000);
+        assert !thread.isAlive() : "Aktiver Scan reagiert nicht innerhalb von zwei Sekunden";
+        assert outcome.get() instanceof CancellationException : outcome.get();
     }
 
     private static void deleteTree(Path root) throws IOException {
