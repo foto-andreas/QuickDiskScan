@@ -38,12 +38,57 @@ foreach ($Module in @("javafx-base", "javafx-graphics", "javafx-controls")) {
     Copy-Item $Jar.FullName (Join-Path $BuildDir "javafx")
 }
 
-if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
-    throw "cl.exe fehlt. Bitte in einer 'x64 Native Tools Command Prompt for VS' bauen."
+function Import-VisualCppEnvironment {
+    $JavaSettings = & (Join-Path $JavaHome "bin\java.exe") -XshowSettings:properties -version 2>&1
+    $ArchitectureLine = $JavaSettings | Select-String '^\s*os\.arch\s*=' | Select-Object -First 1
+    if (-not $ArchitectureLine) { return $false }
+    $JavaArchitecture = ($ArchitectureLine.Line -split '=', 2)[1].Trim()
+    $VcConfiguration = switch ($JavaArchitecture) {
+        { $_ -in "amd64", "x86_64" } {
+            "amd64", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+            break
+        }
+        { $_ -in "aarch64", "arm64" } {
+            "arm64", "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+            break
+        }
+        default { return $false }
+    }
+    $VcArchitecture = $VcConfiguration[0]
+    $VcComponent = $VcConfiguration[1]
+
+    $ProgramFiles = ${env:ProgramFiles(x86)}
+    if (-not $ProgramFiles) { $ProgramFiles = $env:ProgramFiles }
+    $VsWhere = Join-Path $ProgramFiles "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path $VsWhere)) { return $false }
+    $InstallationPath = & $VsWhere -latest -prerelease -products * -requires $VcComponent `
+        -property installationPath | Select-Object -First 1
+    if (-not $InstallationPath) { return $false }
+    $VsDevCmd = Join-Path $InstallationPath.Trim() "Common7\Tools\VsDevCmd.bat"
+    if (-not (Test-Path $VsDevCmd)) { return $false }
+
+    $EnvironmentLines = & $env:ComSpec /d /s /c `
+        "call `"$VsDevCmd`" -no_logo -arch=$VcArchitecture -host_arch=amd64 >nul && set"
+    if ($LASTEXITCODE -ne 0) { return $false }
+    foreach ($Line in $EnvironmentLines) {
+        if ($Line -match '^([^=]+)=(.*)$') {
+            [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], "Process")
+        }
+    }
+    Write-Host "MSVC-Umgebung geladen: $InstallationPath ($VcArchitecture)"
+    return $true
+}
+
+$Compiler = Get-Command cl.exe -ErrorAction SilentlyContinue
+if (-not $Compiler -and (Import-VisualCppEnvironment)) {
+    $Compiler = Get-Command cl.exe -ErrorAction SilentlyContinue
+}
+if (-not $Compiler) {
+    throw "cl.exe fehlt. Visual Studio oder Build Tools mit C++-Werkzeugen installieren."
 }
 Push-Location (Join-Path $BuildDir "native")
 try {
-    & cl.exe /nologo /O2 /LD "/I$JavaHome\include" "/I$JavaHome\include\win32" `
+    & $Compiler.Source /nologo /O2 /LD "/I$JavaHome\include" "/I$JavaHome\include\win32" `
         (Join-Path $ProjectDir "src\main\native\diskmetrics.c") /Fe:quickdiskscanmetrics.dll
     if ($LASTEXITCODE -ne 0) { throw "Native Windows-Hilfe konnte nicht gebaut werden." }
 } finally {

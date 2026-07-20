@@ -57,12 +57,15 @@ macOS/Linux:
 ./quickdiskscan /pfad/zum/verzeichnis
 ```
 
-Unter Windows in einer zur JDK-Architektur passenden „Native Tools Command Prompt for VS“:
+Unter Windows in einer normalen PowerShell:
 
 ```powershell
 .\build.ps1
 .\dist\QuickDiskScan\QuickDiskScan.exe
 ```
+
+`build.ps1` verwendet eine bereits aktive `cl.exe`-Umgebung oder findet Visual Studio/Build Tools
+selbständig. Installiert sein müssen die C++-Werkzeuge für die Architektur des verwendeten JDKs.
 
 `JAVAFX_HOME` kann auf das JavaFX-SDK zeigen. Alternativ verwenden die Skripte vorhandene
 JavaFX-25-Artefakte aus dem lokalen Gradle-Cache. Das Ergebnis ist jeweils ein selbständiges
