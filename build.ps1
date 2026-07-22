@@ -113,12 +113,13 @@ Copy-Item (Join-Path $ProjectDir "src\main\resources\de\schrell\quickdiskscan\ap
     -d (Join-Path $BuildDir "test-classes") $TestSources
 if ($LASTEXITCODE -ne 0) { throw "Test-Kompilierung fehlgeschlagen." }
 $TestPath = (Join-Path $BuildDir "classes") + ";" + (Join-Path $BuildDir "test-classes")
-& (Join-Path $JavaHome "bin\java.exe") --enable-native-access=ALL-UNNAMED -ea -cp $TestPath de.schrell.quickdiskscan.DiskScannerTest
+$PreferenceOption = "-Djava.util.prefs.userRoot=$(Join-Path $BuildDir 'preferences')"
+& (Join-Path $JavaHome "bin\java.exe") --enable-native-access=ALL-UNNAMED -ea $PreferenceOption -cp $TestPath de.schrell.quickdiskscan.DiskScannerTest
 if ($LASTEXITCODE -ne 0) { throw "Tests fehlgeschlagen." }
-& (Join-Path $JavaHome "bin\java.exe") "-Duser.language=de" -cp $TestPath de.schrell.quickdiskscan.I18nTest Deutsch
-if ($LASTEXITCODE -ne 0) { throw "Deutscher UI-Test fehlgeschlagen." }
-& (Join-Path $JavaHome "bin\java.exe") "-Duser.language=en" -cp $TestPath de.schrell.quickdiskscan.I18nTest English
-if ($LASTEXITCODE -ne 0) { throw "Englischer UI-Test fehlgeschlagen." }
+& (Join-Path $JavaHome "bin\java.exe") $PreferenceOption -cp $TestPath de.schrell.quickdiskscan.I18nTest
+if ($LASTEXITCODE -ne 0) { throw "I18n-Test fehlgeschlagen." }
+& (Join-Path $JavaHome "bin\java.exe") $PreferenceOption -cp $TestPath de.schrell.quickdiskscan.ByteFormatTest
+if ($LASTEXITCODE -ne 0) { throw "Zahlenformat-Test fehlgeschlagen." }
 
 $Jar = Join-Path $BuildDir "package\quickdiskscan.jar"
 & (Join-Path $JavaHome "bin\jar.exe") --create --file $Jar `

@@ -25,24 +25,25 @@ final class I18n {
 
     private static final String PREF_LANGUAGE = "language";
     private static final Preferences PREFERENCES = Preferences.userNodeForPackage(I18n.class);
-    private static final Language LANGUAGE = language(PREFERENCES.get(PREF_LANGUAGE,
+    private static volatile Language language = language(PREFERENCES.get(PREF_LANGUAGE,
             Locale.getDefault().getLanguage()));
 
     private I18n() {}
 
     static String text(String german, String english) {
-        return text(LANGUAGE, german, english);
+        return text(language, german, english);
     }
 
     static Locale numberLocale() {
-        return numberLocale(LANGUAGE);
+        return numberLocale(language);
     }
 
     static Language language() {
-        return LANGUAGE;
+        return language;
     }
 
     static void saveLanguage(Language language) {
+        I18n.language = language;
         PREFERENCES.put(PREF_LANGUAGE, language.name());
         try {
             PREFERENCES.flush();

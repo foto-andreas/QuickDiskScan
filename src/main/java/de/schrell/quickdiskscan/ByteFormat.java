@@ -6,13 +6,12 @@ import static de.schrell.quickdiskscan.I18n.numberLocale;
 
 final class ByteFormat {
     private static final String[] UNITS = {"B", "KB", "MB", "GB", "TB", "PB"};
-    private static final NumberFormat INTEGER = NumberFormat.getIntegerInstance(numberLocale());
 
     private ByteFormat() {}
 
     static String bytes(long bytes) {
         if (bytes < 1_000) {
-            return INTEGER.format(bytes) + " B";
+            return number(bytes) + " B";
         }
         double value = bytes;
         int unit = 0;
@@ -28,6 +27,10 @@ final class ByteFormat {
         if (elapsedMillis <= 0) {
             return "0/s";
         }
-        return INTEGER.format(entries * 1_000L / elapsedMillis) + "/s";
+        return number(entries * 1_000L / elapsedMillis) + "/s";
+    }
+
+    private static String number(long value) {
+        return NumberFormat.getIntegerInstance(numberLocale()).format(value);
     }
 }

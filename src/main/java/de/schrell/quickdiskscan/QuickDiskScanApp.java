@@ -68,7 +68,6 @@ import static de.schrell.quickdiskscan.I18n.numberLocale;
 import static de.schrell.quickdiskscan.I18n.text;
 
 public final class QuickDiskScanApp extends Application {
-    private static final NumberFormat NUMBER = NumberFormat.getIntegerInstance(numberLocale());
     private static final String PREF_PATH = "scanPath";
     private static final String PREF_PARALLELISM = "parallelism";
     private static final String PREF_SIZE_BASIS = "sizeBasis";
@@ -472,7 +471,7 @@ public final class QuickDiskScanApp extends Application {
         lastDisplayedEntries = -1;
         busy = true;
         progressLabel.setText(text("Scan wird gestartet …", "Starting scan …"));
-        statisticsLabel.setText(text("Metadaten werden mit ", "Reading metadata with ") + NUMBER.format(parallelism)
+        statisticsLabel.setText(text("Metadaten werden mit ", "Reading metadata with ") + number(parallelism)
                 + text(" parallelen Workern.", " parallel workers."));
         updateBusyState();
 
@@ -514,7 +513,7 @@ public final class QuickDiskScanApp extends Application {
         scanThread = null;
         refresh(true);
         progressBar.setProgress(1);
-        progressLabel.setText(text("Fertig · ", "Done · ") + NUMBER.format(result.snapshot().entries())
+        progressLabel.setText(text("Fertig · ", "Done · ") + number(result.snapshot().entries())
                 + text(" Einträge in ", " entries in ")
                 + formatDuration(result.snapshot().elapsedMillis()));
         updateBusyState();
@@ -564,19 +563,19 @@ public final class QuickDiskScanApp extends Application {
 
         if (busy) {
             String current = snapshot.currentPath() == null ? "" : " · " + abbreviate(snapshot.currentPath().toString(), 72);
-            progressLabel.setText(text("Scanne ", "Scanning ") + NUMBER.format(snapshot.entries())
+            progressLabel.setText(text("Scanne ", "Scanning ") + number(snapshot.entries())
                     + text(" Einträge · ", " entries · ")
                     + ByteFormat.rate(snapshot.entries(), snapshot.elapsedMillis()) + current);
             progressBar.setProgress(expectedVolumeBytes > 0
                     ? Math.min(0.97, (double) snapshot.physicalBytes() / expectedVolumeBytes)
                     : ProgressBar.INDETERMINATE_PROGRESS);
         }
-        statisticsLabel.setText(NUMBER.format(snapshot.files()) + text(" Dateien · ", " files · ")
-                + NUMBER.format(snapshot.directories()) + text(" Ordner · logisch ", " directories · logical ")
+        statisticsLabel.setText(number(snapshot.files()) + text(" Dateien · ", " files · ")
+                + number(snapshot.directories()) + text(" Ordner · logisch ", " directories · logical ")
                 + ByteFormat.bytes(snapshot.logicalBytes()) + text(" · physisch ", " · physical ")
                 + ByteFormat.bytes(snapshot.physicalBytes()) + " · "
-                + NUMBER.format(snapshot.offlineFiles()) + " offline · "
-                + NUMBER.format(snapshot.errors()) + text(" nicht lesbar", " unreadable"));
+                + number(snapshot.offlineFiles()) + " offline · "
+                + number(snapshot.errors()) + text(" nicht lesbar", " unreadable"));
     }
 
     private void focusFromChart(DiskScanner.ScanNode node) {
@@ -665,7 +664,7 @@ public final class QuickDiskScanApp extends Application {
                 nodes.size() == 1
                         ? text("„", "\"") + nodes.getFirst().name()
                                 + text("“ dauerhaft löschen?", "\" permanently?")
-                        : NUMBER.format(nodes.size()) + text(" ausgewählte Einträge dauerhaft löschen?",
+                        : number(nodes.size()) + text(" ausgewählte Einträge dauerhaft löschen?",
                                 " selected items permanently?"),
                 ButtonType.CANCEL, ButtonType.OK);
         alert.initOwner(stage);
@@ -678,7 +677,7 @@ public final class QuickDiskScanApp extends Application {
 
         deleting = true;
         updateBusyState();
-        progressLabel.setText(text("Lösche ", "Deleting ") + NUMBER.format(nodes.size())
+        progressLabel.setText(text("Lösche ", "Deleting ") + number(nodes.size())
                 + text(" Einträge …", " items …"));
         Thread.ofVirtual().name("file-delete").start(() -> {
             ArrayList<DiskScanner.ScanNode> deleted = new ArrayList<>();
@@ -709,7 +708,7 @@ public final class QuickDiskScanApp extends Application {
         deleting = false;
         lastDisplayedEntries = -1;
         refresh(true);
-        progressLabel.setText(NUMBER.format(deleted.size()) + text(" Einträge gelöscht", " items deleted"));
+        progressLabel.setText(number(deleted.size()) + text(" Einträge gelöscht", " items deleted"));
         updateBusyState();
         if (!failures.isEmpty()) {
             showError(text("Nicht alles konnte gelöscht werden", "Not everything could be deleted"),
@@ -774,8 +773,8 @@ public final class QuickDiskScanApp extends Application {
         }
         I18n.saveLanguage(language);
         Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                I18n.text(language, "Die Sprache wird beim nächsten Start übernommen.",
-                        "The language will apply the next time the app starts."), ButtonType.OK);
+                I18n.text(language, "Zahlen übernehmen die Sprache sofort; übrige Texte beim nächsten Start.",
+                        "Numbers apply immediately; remaining text applies the next time the app starts."), ButtonType.OK);
         alert.initOwner(stage);
         alert.setTitle(I18n.text(language, "Sprache gespeichert", "Language saved"));
         alert.setHeaderText(alert.getTitle());
@@ -793,7 +792,7 @@ public final class QuickDiskScanApp extends Application {
             return text("Offline", "Offline");
         }
         if (node.directory() && node.offlineFiles() > 0) {
-            return NUMBER.format(node.offlineFiles()) + " " + text("Offline", "offline");
+            return number(node.offlineFiles()) + " " + text("Offline", "offline");
         }
         return node.directory() ? text("Ordner", "Directory") : text("Lokal", "Local");
     }
@@ -802,6 +801,10 @@ public final class QuickDiskScanApp extends Application {
         ColumnConstraints column = new ColumnConstraints();
         column.setHgrow(Priority.ALWAYS);
         return column;
+    }
+
+    private static String number(long value) {
+        return NumberFormat.getIntegerInstance(numberLocale()).format(value);
     }
 
     private static Region spacer() {
@@ -813,7 +816,7 @@ public final class QuickDiskScanApp extends Application {
     private static String formatDuration(long millis) {
         long seconds = millis / 1_000;
         return seconds < 60 ? String.format(numberLocale(), "%.1f s", millis / 1_000.0)
-                : NUMBER.format(seconds / 60) + " min " + NUMBER.format(seconds % 60) + " s";
+                : number(seconds / 60) + " min " + number(seconds % 60) + " s";
     }
 
     private static String abbreviate(String text, int maximum) {

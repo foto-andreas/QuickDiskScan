@@ -2,11 +2,19 @@ package de.schrell.quickdiskscan;
 
 public final class ByteFormatTest {
     public static void main(String[] args) {
-        if (args.length != 2) {
-            throw new IllegalArgumentException("Erwartet Dezimal- und Tausendertrennzeichen");
+        I18n.Language original = I18n.language();
+        try {
+            assertFormat(I18n.Language.GERMAN, "1,23 MB", "12.345/s");
+            assertFormat(I18n.Language.ENGLISH, "1.23 MB", "12,345/s");
+        } finally {
+            I18n.saveLanguage(original);
         }
-        assertEquals("1" + args[0] + "23 MB", ByteFormat.bytes(1_234_567));
-        assertEquals("12" + args[1] + "345/s", ByteFormat.rate(12_345, 1_000));
+    }
+
+    private static void assertFormat(I18n.Language language, String bytes, String rate) {
+        I18n.saveLanguage(language);
+        assertEquals(bytes, ByteFormat.bytes(1_234_567));
+        assertEquals(rate, ByteFormat.rate(12_345, 1_000));
     }
 
     private static void assertEquals(String expected, String actual) {
