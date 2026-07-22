@@ -1,25 +1,14 @@
 package de.schrell.quickdiskscan;
 
-import java.util.Locale;
-
 public final class I18nTest {
     public static void main(String[] args) {
-        String actual = I18n.text("Deutsch", "English");
-        if (args.length != 1 || !actual.equals(args[0])) {
-            throw new AssertionError("Erwartet " + java.util.Arrays.toString(args) + ", erhalten " + actual);
-        }
-        Locale original = Locale.getDefault(Locale.Category.FORMAT);
-        try {
-            Locale.setDefault(Locale.Category.FORMAT, Locale.GERMANY);
-            assertEquals(Locale.GERMANY, I18n.numberLocale());
-            Locale.setDefault(Locale.Category.FORMAT, Locale.US);
-            assertEquals(Locale.US, I18n.numberLocale());
-        } finally {
-            Locale.setDefault(Locale.Category.FORMAT, original);
-        }
+        assertEquals("Deutsch", I18n.text(I18n.Language.GERMAN, "Deutsch", "English"));
+        assertEquals("English", I18n.text(I18n.Language.ENGLISH, "Deutsch", "English"));
+        assertEquals(java.util.Locale.GERMANY, I18n.numberLocale(I18n.Language.GERMAN));
+        assertEquals(java.util.Locale.US, I18n.numberLocale(I18n.Language.ENGLISH));
     }
 
-    private static void assertEquals(Locale expected, Locale actual) {
+    private static void assertEquals(Object expected, Object actual) {
         if (!expected.equals(actual)) {
             throw new AssertionError("Erwartet " + expected + ", erhalten " + actual);
         }

@@ -83,6 +83,7 @@ public final class QuickDiskScanApp extends Application {
     private final ToggleButton physicalButton = new ToggleButton(text("Belegte Blöcke", "Allocated blocks"));
     private final Button scanButton = new Button(text("Scannen", "Scan"));
     private final Button cancelButton = new Button(text("Abbrechen", "Cancel"));
+    private final ComboBox<I18n.Language> languageBox = new ComboBox<>();
     private final ProgressBar volumeBar = new ProgressBar();
     private final Label volumeLabel = new Label(text("Volumes werden ermittelt …", "Discovering volumes …"));
     private final SunburstView sunburst = new SunburstView();
@@ -212,8 +213,16 @@ public final class QuickDiskScanApp extends Application {
 
         parallelSpinner.setEditable(true);
         parallelSpinner.setPrefWidth(88);
+        languageBox.getItems().setAll(I18n.Language.values());
+        languageBox.setValue(I18n.language());
+        languageBox.setPrefWidth(110);
+        languageBox.setTooltip(new Tooltip(text("Sprache (Neustart erforderlich)",
+                "Language (restart required)")));
+        languageBox.setOnAction(event -> saveLanguage());
         HBox options = new HBox(9, new Label(text("Parallelität", "Parallelism")), parallelSpinner,
-                new Label(text("Anzeige", "Display")), logicalButton, physicalButton, spacer(), scanButton, cancelButton);
+                new Label(text("Anzeige", "Display")), logicalButton, physicalButton,
+                new Label(text("Sprache", "Language")), languageBox,
+                spacer(), scanButton, cancelButton);
         options.setAlignment(Pos.CENTER_LEFT);
         scanButton.setDefaultButton(true);
         scanButton.getStyleClass().add("primary-button");
@@ -608,6 +617,7 @@ public final class QuickDiskScanApp extends Application {
         pathField.setDisable(busy || deleting);
         volumeBox.setDisable(busy || deleting);
         parallelSpinner.setDisable(busy || deleting);
+        languageBox.setDisable(busy || deleting);
         progressBar.setVisible(busy);
         progressBar.setManaged(busy);
         deleteProgress.setVisible(deleting);
@@ -754,6 +764,21 @@ public final class QuickDiskScanApp extends Application {
         alert.initOwner(stage);
         alert.setTitle(title);
         alert.setHeaderText(title);
+        alert.showAndWait();
+    }
+
+    private void saveLanguage() {
+        I18n.Language language = languageBox.getValue();
+        if (language == null || language == I18n.language()) {
+            return;
+        }
+        I18n.saveLanguage(language);
+        Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                I18n.text(language, "Die Sprache wird beim nächsten Start übernommen.",
+                        "The language will apply the next time the app starts."), ButtonType.OK);
+        alert.initOwner(stage);
+        alert.setTitle(I18n.text(language, "Sprache gespeichert", "Language saved"));
+        alert.setHeaderText(alert.getTitle());
         alert.showAndWait();
     }
 
