@@ -90,6 +90,10 @@ cp -R "$project_dir/src/main/resources/." "$build_dir/classes/"
     de.schrell.quickdiskscan.I18nTest Deutsch
 "$java_home/bin/java" -Duser.language=en -cp "$build_dir/classes:$build_dir/test-classes" \
     de.schrell.quickdiskscan.I18nTest English
+"$java_home/bin/java" -Duser.language=de -cp "$build_dir/classes:$build_dir/test-classes" \
+    de.schrell.quickdiskscan.ByteFormatTest , .
+"$java_home/bin/java" -Duser.language=en -cp "$build_dir/classes:$build_dir/test-classes" \
+    de.schrell.quickdiskscan.ByteFormatTest . ,
 
 "$java_home/bin/jar" --create --file "$build_dir/package/quickdiskscan.jar" \
     --main-class de.schrell.quickdiskscan.QuickDiskScanApp -C "$build_dir/classes" .

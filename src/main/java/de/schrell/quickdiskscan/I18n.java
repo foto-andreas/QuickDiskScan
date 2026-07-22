@@ -10,4 +10,8 @@ final class I18n {
     static String text(String german, String english) {
         return GERMAN ? german : english;
     }
+
+    static Locale numberLocale() {
+        return GERMAN ? Locale.GERMANY : Locale.US;
+    }
 }

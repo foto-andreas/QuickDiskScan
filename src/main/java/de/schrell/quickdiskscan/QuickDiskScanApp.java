@@ -64,10 +64,11 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
 
+import static de.schrell.quickdiskscan.I18n.numberLocale;
 import static de.schrell.quickdiskscan.I18n.text;
 
 public final class QuickDiskScanApp extends Application {
-    private static final NumberFormat NUMBER = NumberFormat.getIntegerInstance(Locale.getDefault());
+    private static final NumberFormat NUMBER = NumberFormat.getIntegerInstance(numberLocale());
     private static final String PREF_PATH = "scanPath";
     private static final String PREF_PARALLELISM = "parallelism";
     private static final String PREF_SIZE_BASIS = "sizeBasis";
@@ -270,7 +271,7 @@ public final class QuickDiskScanApp extends Application {
             protected void updateItem(Long bytes, boolean empty) {
                 super.updateItem(bytes, empty);
                 long total = focusedNode == null ? 0 : sizeBasis.bytes(focusedNode);
-                setText(empty || bytes == null || total == 0 ? "" : String.format(Locale.getDefault(), "%.1f %%",
+                setText(empty || bytes == null || total == 0 ? "" : String.format(numberLocale(), "%.1f %%",
                         bytes * 100.0 / total));
                 setAlignment(Pos.CENTER_RIGHT);
             }
@@ -462,7 +463,7 @@ public final class QuickDiskScanApp extends Application {
         lastDisplayedEntries = -1;
         busy = true;
         progressLabel.setText(text("Scan wird gestartet …", "Starting scan …"));
-        statisticsLabel.setText(text("Metadaten werden mit ", "Reading metadata with ") + parallelism
+        statisticsLabel.setText(text("Metadaten werden mit ", "Reading metadata with ") + NUMBER.format(parallelism)
                 + text(" parallelen Workern.", " parallel workers."));
         updateBusyState();
 
@@ -786,8 +787,8 @@ public final class QuickDiskScanApp extends Application {
 
     private static String formatDuration(long millis) {
         long seconds = millis / 1_000;
-        return seconds < 60 ? String.format(Locale.getDefault(), "%.1f s", millis / 1_000.0)
-                : seconds / 60 + " min " + seconds % 60 + " s";
+        return seconds < 60 ? String.format(numberLocale(), "%.1f s", millis / 1_000.0)
+                : NUMBER.format(seconds / 60) + " min " + NUMBER.format(seconds % 60) + " s";
     }
 
     private static String abbreviate(String text, int maximum) {

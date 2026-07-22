@@ -1,11 +1,12 @@
 package de.schrell.quickdiskscan;
 
 import java.text.NumberFormat;
-import java.util.Locale;
+
+import static de.schrell.quickdiskscan.I18n.numberLocale;
 
 final class ByteFormat {
     private static final String[] UNITS = {"B", "KB", "MB", "GB", "TB", "PB"};
-    private static final NumberFormat INTEGER = NumberFormat.getIntegerInstance(Locale.getDefault());
+    private static final NumberFormat INTEGER = NumberFormat.getIntegerInstance(numberLocale());
 
     private ByteFormat() {}
 
@@ -19,7 +20,7 @@ final class ByteFormat {
             value /= 1_000;
             unit++;
         }
-        return String.format(Locale.getDefault(), value >= 100 ? "%.0f %s" : value >= 10 ? "%.1f %s" : "%.2f %s",
+        return String.format(numberLocale(), value >= 100 ? "%.0f %s" : value >= 10 ? "%.1f %s" : "%.2f %s",
                 value, UNITS[unit]);
     }
 
