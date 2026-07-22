@@ -86,13 +86,13 @@ cp -R "$project_dir/src/main/resources/." "$build_dir/classes/"
     -d "$build_dir/test-classes" "${test_sources[@]}"
 "$java_home/bin/java" --enable-native-access=ALL-UNNAMED -ea \
     -cp "$build_dir/classes:$build_dir/test-classes" de.schrell.quickdiskscan.DiskScannerTest
-"$java_home/bin/java" -Duser.language=de -cp "$build_dir/classes:$build_dir/test-classes" \
+"$java_home/bin/java" -Duser.language=de -Duser.country=DE -cp "$build_dir/classes:$build_dir/test-classes" \
     de.schrell.quickdiskscan.I18nTest Deutsch
-"$java_home/bin/java" -Duser.language=en -cp "$build_dir/classes:$build_dir/test-classes" \
+"$java_home/bin/java" -Duser.language=en -Duser.country=US -cp "$build_dir/classes:$build_dir/test-classes" \
     de.schrell.quickdiskscan.I18nTest English
-"$java_home/bin/java" -Duser.language=de -cp "$build_dir/classes:$build_dir/test-classes" \
+"$java_home/bin/java" -Duser.language=de -Duser.country=DE -cp "$build_dir/classes:$build_dir/test-classes" \
     de.schrell.quickdiskscan.ByteFormatTest , .
-"$java_home/bin/java" -Duser.language=en -cp "$build_dir/classes:$build_dir/test-classes" \
+"$java_home/bin/java" -Duser.language=en -Duser.country=US -cp "$build_dir/classes:$build_dir/test-classes" \
     de.schrell.quickdiskscan.ByteFormatTest . ,
 
 "$java_home/bin/jar" --create --file "$build_dir/package/quickdiskscan.jar" \

@@ -12,6 +12,6 @@ final class I18n {
     }
 
     static Locale numberLocale() {
-        return GERMAN ? Locale.GERMANY : Locale.US;
+        return Locale.getDefault(Locale.Category.FORMAT);
     }
 }
