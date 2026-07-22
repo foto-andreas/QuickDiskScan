@@ -88,6 +88,7 @@ cp -R "$project_dir/src/main/resources/." "$build_dir/classes/"
     -Djava.util.prefs.userRoot="$build_dir/preferences" -cp "$build_dir/classes:$build_dir/test-classes" de.schrell.quickdiskscan.DiskScannerTest
 "$java_home/bin/java" -Djava.util.prefs.userRoot="$build_dir/preferences" -cp "$build_dir/classes:$build_dir/test-classes" de.schrell.quickdiskscan.I18nTest
 "$java_home/bin/java" -Djava.util.prefs.userRoot="$build_dir/preferences" -cp "$build_dir/classes:$build_dir/test-classes" de.schrell.quickdiskscan.ByteFormatTest
+"$java_home/bin/java" -Djava.util.prefs.userRoot="$build_dir/preferences" -cp "$build_dir/classes:$build_dir/test-classes" de.schrell.quickdiskscan.VolumeDiscoveryTest
 
 "$java_home/bin/jar" --create --file "$build_dir/package/quickdiskscan.jar" \
     --main-class de.schrell.quickdiskscan.QuickDiskScanApp -C "$build_dir/classes" .

@@ -67,6 +67,17 @@ final class VolumeDiscovery {
         return List.copyOf(volumes);
     }
 
+    static Volume volumeForPath(List<Volume> volumes, Path path) {
+        Volume match = null;
+        for (Volume volume : volumes) {
+            if (path.startsWith(volume.path()) && (match == null
+                    || volume.path().getNameCount() > match.path().getNameCount())) {
+                match = volume;
+            }
+        }
+        return match;
+    }
+
     private static String friendlyName(Path path, FileStore store, String os) {
         Path fileName = path.getFileName();
         if (fileName != null && !fileName.toString().isBlank()) {

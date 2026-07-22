@@ -115,6 +115,7 @@ public final class QuickDiskScanApp extends Application {
     private boolean busy;
     private boolean deleting;
     private boolean tableConfigured;
+    private boolean updatingVolumeSelection;
     private Runnable idleStatus = this::showReadyStatus;
 
     public QuickDiskScanApp() {}
@@ -384,7 +385,7 @@ public final class QuickDiskScanApp extends Application {
         deleteButton.setOnAction(event -> confirmDelete(
                 new ArrayList<>(table.getSelectionModel().getSelectedItems())));
         volumeBox.valueProperty().addListener((observable, previous, selected) -> {
-            if (selected != null) {
+            if (selected != null && !updatingVolumeSelection) {
                 pathField.setText(selected.path().toString());
                 updateVolumeUsage(selected);
             }
@@ -394,17 +395,23 @@ public final class QuickDiskScanApp extends Application {
     private void setVolumes(List<VolumeDiscovery.Volume> volumes) {
         volumeBox.getItems().setAll(volumes);
         String restoredPath = pathField.getText();
-        VolumeDiscovery.Volume selected = volumes.stream()
-                .filter(volume -> volume.path().toString().equals(restoredPath)).findFirst()
-                .orElse(volumes.isEmpty() ? null : volumes.getFirst());
+        Path path = path(restoredPath);
+        VolumeDiscovery.Volume selected = path == null ? null : VolumeDiscovery.volumeForPath(volumes, path);
+        if (selected == null && restoredPath.isBlank() && !volumes.isEmpty()) {
+            selected = volumes.getFirst();
+        }
         if (selected != null) {
-            volumeBox.setValue(selected);
-            if (!restoredPath.isBlank()) {
-                pathField.setText(restoredPath);
+            selectVolume(selected);
+            if (restoredPath.isBlank()) {
+                pathField.setText(selected.path().toString());
             }
         } else {
-            volumeLabel.setText(text("Keine Volumes gefunden – ein Verzeichnis kann direkt gewählt werden.",
-                    "No volumes found – a directory can still be selected directly."));
+            selectVolume(null);
+            volumeLabel.setText(volumes.isEmpty()
+                    ? text("Keine Volumes gefunden – ein Verzeichnis kann direkt gewählt werden.",
+                            "No volumes found – a directory can still be selected directly.")
+                    : text("Ausgewähltes Verzeichnis liegt auf keinem ermittelten Volume.",
+                            "The selected directory is not on a discovered volume."));
             volumeBar.setProgress(0);
         }
     }
@@ -445,7 +452,32 @@ public final class QuickDiskScanApp extends Application {
         }
         var selected = chooser.showDialog(stage);
         if (selected != null) {
-            pathField.setText(selected.toPath().toAbsolutePath().normalize().toString());
+            Path path = selected.toPath().toAbsolutePath().normalize();
+            pathField.setText(path.toString());
+            selectVolume(VolumeDiscovery.volumeForPath(volumeBox.getItems(), path));
+        }
+    }
+
+    private void selectVolume(VolumeDiscovery.Volume volume) {
+        updatingVolumeSelection = true;
+        try {
+            volumeBox.setValue(volume);
+        } finally {
+            updatingVolumeSelection = false;
+        }
+        if (volume != null) {
+            updateVolumeUsage(volume);
+        }
+    }
+
+    private static Path path(String value) {
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return Path.of(value).toAbsolutePath().normalize();
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

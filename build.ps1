@@ -120,6 +120,8 @@ if ($LASTEXITCODE -ne 0) { throw "Tests fehlgeschlagen." }
 if ($LASTEXITCODE -ne 0) { throw "I18n-Test fehlgeschlagen." }
 & (Join-Path $JavaHome "bin\java.exe") $PreferenceOption -cp $TestPath de.schrell.quickdiskscan.ByteFormatTest
 if ($LASTEXITCODE -ne 0) { throw "Zahlenformat-Test fehlgeschlagen." }
+& (Join-Path $JavaHome "bin\java.exe") $PreferenceOption -cp $TestPath de.schrell.quickdiskscan.VolumeDiscoveryTest
+if ($LASTEXITCODE -ne 0) { throw "Volume-Auswahl-Test fehlgeschlagen." }
 
 $Jar = Join-Path $BuildDir "package\quickdiskscan.jar"
 & (Join-Path $JavaHome "bin\jar.exe") --create --file $Jar `
